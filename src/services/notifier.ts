@@ -5,20 +5,24 @@ import { IUser } from "../models/User";
 let transporter: nodemailer.Transporter | null = null;
 
 export function initMailer() {
-  const user = process.env.GMAIL_USER;
-  const pass = process.env.GMAIL_APP_PASSWORD;
+  const host = process.env.MAIL_HOST;
+  const user = process.env.MAIL_USER;
+  const pass = process.env.MAIL_PASS;
+  const port = Number(process.env.MAIL_PORT) || 587;
 
-  if (!user || !pass) {
-    console.warn("Gmail credentials not set — email notifications disabled");
+  if (!host || !user || !pass) {
+    console.warn("Mail credentials not set (MAIL_HOST, MAIL_USER, MAIL_PASS) — email notifications disabled");
     return;
   }
 
   transporter = nodemailer.createTransport({
-    service: "gmail",
+    host,
+    port,
+    secure: port === 465,
     auth: { user, pass },
   });
 
-  console.log("Email notifier initialized");
+  console.log(`Email notifier initialized (${host}:${port})`);
 }
 
 export async function sendPriceAlert(user: IUser, product: IProduct) {
@@ -47,7 +51,7 @@ export async function sendPriceAlert(user: IUser, product: IProduct) {
   `;
 
   await transporter.sendMail({
-    from: `"Price Tracker" <${process.env.GMAIL_USER}>`,
+    from: `"Price Tracker" <${process.env.MAIL_USER}>`,
     to: user.email,
     subject: `Price Drop: ${product.title} is now ₹${product.currentPrice.toLocaleString("en-IN")}!`,
     html,
